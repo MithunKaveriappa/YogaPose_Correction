@@ -132,7 +132,7 @@ def somefuntion(landmarks):
 class MatchYogaPos:
 
     def __init__(self):
-        with open('C:\\Users\\Mithun\\Desktop\\YogaCorrector-main\\poses_data.json', 'r') as json_file:
+        with open('C:\programs\projects\yoga_pos\git code\YogaCorrector\poses_data.json', 'r') as json_file:
             poses_data = json.load(json_file)
         
         self.angle_list = poses_data
