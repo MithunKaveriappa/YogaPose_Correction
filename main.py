@@ -62,9 +62,9 @@ class CamInput:
         with self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
             while self.camera.isOpened():
                 success, frame = self.camera.read()
-                if self.isStarted and self.frame_count < (frameRate * timegiven):
+                if self.isStarted == True and self.frame_count < (frameRate*timegiven):
                     self.frame_count += 1
-                elif self.isStarted and self.frame_count == (frameRate * timegiven):
+                elif self.isStarted == True and self.frame_count == (frameRate*timegiven):
                     print('time up')
                     self.isStarted = False
 
@@ -129,17 +129,17 @@ def video_feed():
 
 @app.route('/start', methods=['POST'])
 def start():
-    cam_obj.isStarted = not cam_obj.isStarted # for testing only
-    # cam_obj.isStarted = True
+    cam_obj.isStarted = not cam_obj.isStarted #for testing only
+    #cam_obj.isStarted = True
     return 'pose started'
 
 @app.route('/close_webcam', methods=['POST'])
 def close_webcam():
     global camera
     global cam_obj
+    # Release the camera resources
     cam_obj.close_cam()
     return "Webcam Closed"
 
 if __name__ == "__main__":
-    from waitress import serve
-    serve(app, host='0.0.0.0', port=5000)
+    socket.run(app, allow_unsafe_werkzeug=True, debug=True)
