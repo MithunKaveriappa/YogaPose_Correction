@@ -1,0 +1,8 @@
+flask
+flask-socketio
+mediapipe
+opencv-python
+numpy
+pyttsx3
+seaborn
+matplotlib
