@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import PoseCamera from "@/components/PoseCamera";
 import AICoachPanel from "@/components/AICoachPanel";
-import { Sparkles, HelpCircle } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 
-export default function PracticePage() {
+function PracticeContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const initialPose = searchParams.get("pose") || "Trikonasana";
+
   const [poses, setPoses] = useState<string[]>([]);
-  const [selectedPose, setSelectedPose] = useState<string>("Trikonasana");
+  const [selectedPose, setSelectedPose] = useState<string>(initialPose);
+  const [poseImageUrl, setPoseImageUrl] = useState<string | null>(null);
   const [isSessionActive, setIsSessionActive] = useState<boolean>(false);
   const [evaluationResult, setEvaluationResult] = useState<any>(null);
 
@@ -23,25 +29,46 @@ export default function PracticePage() {
       .catch((err) => console.error("Could not fetch poses list:", err));
   }, []);
 
+  // Fetch target reference pose details & image URL whenever selectedPose changes
+  useEffect(() => {
+    fetch(`http://127.0.0.1:8000/api/poses/${encodeURIComponent(selectedPose)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.image_url) {
+          setPoseImageUrl(data.image_url);
+        } else {
+          setPoseImageUrl(null);
+        }
+      })
+      .catch((err) => console.error("Error fetching pose details:", err));
+  }, [selectedPose]);
+
+  const handlePoseChange = (newPose: string) => {
+    setSelectedPose(newPose);
+    setEvaluationResult(null);
+    router.replace(`/practice?pose=${encodeURIComponent(newPose)}`);
+  };
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            Practice Studio <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Live 60 FPS</span>
+            Practice Studio Studio HD <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">1280x720 60 FPS</span>
           </h2>
-          <p className="text-slate-400 text-sm mt-1">Select a pose, allow camera access, and receive real-time AI posture feedback.</p>
+          <p className="text-slate-400 text-sm mt-1">
+            Perform postures alongside the target reference guide with live AI joint corrections.
+          </p>
         </div>
 
-        {/* Pose Selection Dropdown */}
+        {/* Dynamic Pose Selector */}
         <div className="flex items-center gap-3">
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Select Pose:</label>
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Target Pose:</label>
           <select
             value={selectedPose}
-            onChange={(e) => setSelectedPose(e.target.value)}
-            disabled={isSessionActive}
-            className="bg-slate-900 text-white font-semibold text-sm px-4 py-2.5 rounded-2xl border border-white/10 focus:outline-none focus:border-emerald-500 transition-colors shadow-lg cursor-pointer"
+            onChange={(e) => handlePoseChange(e.target.value)}
+            className="bg-slate-900 text-white font-bold text-sm px-5 py-3 rounded-2xl border border-emerald-500/40 focus:outline-none focus:border-emerald-400 transition-all shadow-xl cursor-pointer"
           >
             {poses.length > 0 ? (
               poses.map((pose) => (
@@ -56,9 +83,9 @@ export default function PracticePage() {
         </div>
       </div>
 
-      {/* Main Studio Grid */}
+      {/* Main Studio Grid - Large Viewport (7 cols) + AI Coach & Reference Pose (5 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Live Camera GPU Workspace (7 Cols) */}
+        {/* Left Column: Enlarged Video Studio (7 Cols) */}
         <div className="lg:col-span-7 space-y-6">
           <PoseCamera
             selectedPose={selectedPose}
@@ -73,19 +100,31 @@ export default function PracticePage() {
             <div className="text-xs text-slate-300 space-y-1">
               <p className="font-semibold text-slate-200">How to get the most accurate feedback:</p>
               <ul className="list-disc list-inside text-slate-400 space-y-1">
-                <li>Stand 6-8 feet away from your webcam so your full body is visible.</li>
-                <li>Ensure good room lighting with minimal background clutter.</li>
-                <li>Follow the live voice cues from Gemini AI Coach to adjust your joint angles.</li>
+                <li>Look at the <strong>Target Reference Pose Guide</strong> on the right to position your posture.</li>
+                <li>Stand 6-8 feet away from your camera for full-body 3D skeleton tracking.</li>
+                <li>Click <strong>Record Session Clip</strong> to capture and download WebM practice videos.</li>
               </ul>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Real-Time AI Coach & Diagnostics (5 Cols) */}
+        {/* Right Column: Reference Visual + AI Voice Coach (5 Cols) */}
         <div className="lg:col-span-5">
-          <AICoachPanel evaluationResult={evaluationResult} />
+          <AICoachPanel
+            evaluationResult={evaluationResult}
+            selectedPose={selectedPose}
+            poseImageUrl={poseImageUrl}
+          />
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PracticePage() {
+  return (
+    <Suspense fallback={<div className="text-center py-12 text-slate-400">Loading Studio...</div>}>
+      <PracticeContent />
+    </Suspense>
   );
 }

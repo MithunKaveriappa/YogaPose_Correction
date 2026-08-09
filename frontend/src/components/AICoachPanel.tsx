@@ -1,19 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Volume2, VolumeX, CheckCircle, AlertTriangle, Info } from "lucide-react";
+import { Sparkles, Volume2, VolumeX, CheckCircle, AlertTriangle, Info, Image as ImageIcon } from "lucide-react";
 
 interface AICoachPanelProps {
   evaluationResult: any;
+  selectedPose: string;
+  poseImageUrl?: string | null;
 }
 
-export default function AICoachPanel({ evaluationResult }: AICoachPanelProps) {
+export default function AICoachPanel({ evaluationResult, selectedPose, poseImageUrl }: AICoachPanelProps) {
   const [speechEnabled, setSpeechEnabled] = useState(true);
   const [lastSpokenText, setLastSpokenText] = useState("");
 
   const score = evaluationResult?.accuracy_score ?? 0;
-  const poseName = evaluationResult?.pose_name ?? "Trikonasana";
-  const coachingText = evaluationResult?.ai_coaching_text || "Align yourself in front of the camera and click Start Tracking.";
+  const poseName = evaluationResult?.pose_name ?? selectedPose;
+  const coachingText = evaluationResult?.ai_coaching_text || "Align yourself in front of the camera and click Start Real-Time Tracking.";
   const jointDetails = evaluationResult?.joint_details || [];
 
   // Web Speech API Voice Feedback
@@ -21,7 +23,7 @@ export default function AICoachPanel({ evaluationResult }: AICoachPanelProps) {
     if (!speechEnabled || !coachingText || coachingText === lastSpokenText) return;
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
-    window.speechSynthesis.cancel(); // Stop prior audio queue
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(coachingText);
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
@@ -34,7 +36,35 @@ export default function AICoachPanel({ evaluationResult }: AICoachPanelProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Overall Score Card */}
+      {/* Target Reference Pose Visual Card */}
+      <div className="glass-card rounded-3xl p-6 border border-purple-500/20 bg-gradient-to-br from-slate-900/90 to-purple-950/20">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-purple-400" />
+            <h3 className="font-semibold text-base text-slate-200">Target Reference Pose Guide</h3>
+          </div>
+          <span className="text-xs px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">
+            {selectedPose}
+          </span>
+        </div>
+
+        <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-slate-950/80 border border-white/10 flex items-center justify-center p-2">
+          {poseImageUrl ? (
+            <img
+              src={poseImageUrl}
+              alt={`Target benchmark for ${selectedPose}`}
+              className="max-h-full max-w-full object-contain rounded-xl shadow-lg"
+            />
+          ) : (
+            <div className="text-center p-6 text-slate-500 text-xs">
+              <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p>Reference pose visual loaded for {selectedPose}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Live Accuracy Score Card */}
       <div className="glass-card rounded-3xl p-6 border border-white/10 relative overflow-hidden">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -51,8 +81,7 @@ export default function AICoachPanel({ evaluationResult }: AICoachPanelProps) {
         </div>
 
         <div className="flex items-center gap-6">
-          {/* Circular Score Gauge */}
-          <div className="relative w-24 h-24 flex items-center justify-center">
+          <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
             <div className={`absolute inset-0 rounded-full bg-gradient-to-tr ${scoreColor} opacity-20 blur-md`} />
             <div className="w-20 h-20 rounded-full border-4 border-slate-800 flex flex-col items-center justify-center bg-slate-950/80">
               <span className="text-2xl font-bold text-white tracking-tight">{Math.round(score)}%</span>
@@ -90,7 +119,7 @@ export default function AICoachPanel({ evaluationResult }: AICoachPanelProps) {
           <Info className="w-4 h-4 text-indigo-400" /> 8-Joint Angle Breakdown
         </h4>
 
-        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+        <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
           {jointDetails.length > 0 ? (
             jointDetails.map((joint: any, idx: number) => (
               <div
